@@ -1,14 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import send from "./send_4194791.png";
 import { useLocation } from "react-router-dom";
-import axios from "axios";
-import { useEffect, useRef } from "react";
 import { useAuth } from "./security/AuthContext";
+import { getMessages, getUserById, sendMessage } from "./api/ApiClient";
 
 function ChatInterface() {
   const [messages, setMessages] = useState([]);
   const [content, setNewMessage] = useState("");
-  const [timestamp, setTimeStamp] = useState(new Date());
   const [participant, setParticipant] = useState("");
 
   const newMessageRef = useRef(null); // Ref for the input element
@@ -21,78 +19,55 @@ function ChatInterface() {
   const chatId = searchedId.charAt(0);
   const participantId = searchedId.charAt(1);
 
-  const getParticipant = async (event) => {
-    event.preventDefault();
+  const fetchMessages = async () => {
     try {
-      const response = await axios.get(
-        `http://localhost:8080/users/id/${participantId}`
+      const response = await getMessages(authContext.token);
+      const filteredMessages = response.data.filter(
+        (message) => message.conversation.id === parseInt(chatId)
       );
+      setMessages(filteredMessages);
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+    }
+  };
+
+  const fetchParticipant = async () => {
+    try {
+      const response = await getUserById(authContext.token, participantId);
       setParticipant(response.data.userName);
     } catch (error) {
       console.log(error);
     }
   };
 
+  useEffect(() => {
+    fetchMessages();
+    fetchParticipant();
+  }, []); // Empty dependency array ensures this runs once on mount
+
   const handleNewMessage = (e) => {
-    if (e.target.value !== "") {
-      setNewMessage(e.target.value);
-    }
+    setNewMessage(e.target.value);
   };
 
   const handleSend = async (event) => {
     event.preventDefault();
     try {
-      const response = await axios.post(
-        `http://localhost:8080/messages/${authContext.userId}/${chatId}`,
-        {
-          content,
-          timestamp,
-        }
-      );
+      await sendMessage(authContext.token, authContext.userId, chatId, new Date(), content);
+      await fetchMessages(); // Fetch messages again after sending a new one
+      setNewMessage(""); // Clear the input field
+      if (newMessageRef.current) {
+        newMessageRef.current.value = ""; // Clear the input field visually
+      }
     } catch (error) {
       console.log(error);
     }
-
-    if (newMessageRef.current) {
-      newMessageRef.current.value = ""; // Set input value to empty string
-    }
   };
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      async function fetchMessages() {
-        try {
-          const response = await axios.get("http://localhost:8080/messages");
-          const filteredMessages = [];
-
-          for (const message of response.data) {
-            if (message.conversation.id === parseInt(chatId)) {
-              filteredMessages.push(message);
-            }
-          }
-          setMessages(filteredMessages);
-        } catch (error) {
-          console.error("Error fetching messages:", error);
-        }
-      }
-      fetchMessages();
-    }, 10); // Fetch messages every second
-
-    return () => clearInterval(interval); // Cleanup function to clear the interval
-  }, []);
-
-  const [sender, setSender] = useState("You");
-
   return (
-    <div
-      className="flex justify-center items-center h-screen"
-      onLoad={getParticipant}
-    >
+    <div className="flex justify-center items-center h-screen">
       <div className="flex flex-col items-center w-[400px] h-[600px] rounded-lg border bg-white drop-shadow-lg py-4 px-4">
         <div className="flex justify-center items-center h-16">
-          <h1 className="text-lg font-semibold">
-            Chatting with {participant}
-          </h1>
+          <h1 className="text-lg font-semibold">Chatting with {participant}</h1>
         </div>
         <div className="flex-grow p-4 overflow-y-auto w-full">
           {messages.map((message, index) => (

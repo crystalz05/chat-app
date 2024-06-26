@@ -3,7 +3,7 @@ import "./App.css";
 import "./index.css";
 import ChatApp from "./components/test";
 import LoginPage from "./components/LoginPage";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes} from "react-router-dom";
 import ChatPage from "./components/ChatPage";
 import ChatInterface from "./components/ChatInterface";
 import AuthProvider from "./components/security/AuthContext";
@@ -11,9 +11,12 @@ import { useAuth } from "./components/security/AuthContext";
 
 function AuthenticatedRoute({ children }) {
   const authContext = useAuth();
-  if (authContext.isAuthenticated) {
+  
+  if (authContext.isAuthenticated) 
     return children;
-  }
+
+    return <Navigate to="/login"/>
+  
 }
 
 function App() {

@@ -2,12 +2,12 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./security/AuthContext";
-import axios from "axios";
 import SignUp from "./SignUp";
 
 function LoginPage() {
   const authContext = useAuth();
   const navigate = useNavigate();
+
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,23 +21,40 @@ function LoginPage() {
     setPassword(e.target.value);
   };
 
+  // const handleSubmit = async (event) => {
+  //   event.preventDefault();
+  //   try {
+
+  //     const response = await apiClient.post("/login", {
+  //       email,
+  //       password,
+  //     },);
+      
+  //     const response2 = await apiClient.get(`/users/${email}`,);
+  //     const userId = response2.data.id;
+  //     authContext.handleLoginSuccess(userId); 
+  //     setError("");
+  //     navigateToChat();
+  //   } catch (error) {
+  //     setError("Invalid username or password");
+  //   }
+  // };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
-    try {
-      const response = await axios.post("http://localhost:8080/login", {
-        email,
-        password,
-      });
-      const response2 = await axios.get(`http://localhost:8080/users/${email}`);
-      const userId = response2.data.id;
-      authContext.handleLoginSuccess(userId); 
-      setError("");
-      navigateToChat();
-    } catch (error) {
+    const result2 = await authContext.login(email, password);
+
+    try{
+      if (result2.success) {
+        navigateToChat();
+      }else{
+        setError("Invalid username or password");
+      }  
+    }catch{
       setError("Invalid username or password");
     }
   };
-
+ 
   const navigateToChat = () => {
     navigate("/chat");
   };
